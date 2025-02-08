@@ -17,7 +17,6 @@ Currently supports the following image formats:
 ## Dependencies
 Before using PhotoClassifier, make sure you have installed the following Python libraries:
 - `rawpy`
-- `Pillow`
 
 ## Usage
 1. Install the required libraries:
@@ -50,13 +49,12 @@ PhotoClassifier 是一个自动区分横竖屏图片的 Python 程序。
 
 在使用 PhotoClassifier 之前，请确保已安装以下 Python 库：
 - `rawpy`
-- `Pillow`
 
 ## 使用方法
 
 1. 安装依赖库：
    ```bash
-   pip install rawpy Pillow
+   pip install rawpy
    ```
 2. 运行程序并拖入文件夹或文件。
 
