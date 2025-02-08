@@ -1,149 +1,280 @@
 import sys
 import os
-from PIL import Image, ExifTags
 import shutil
+import subprocess
 import logging
+from datetime import datetime
+from PIL import Image
+
+# === 版权信息 ===
+def show_copyright():
+    print("\nPhotoClassifier v1.8")
+    print("Created by mrliguo")
+    print("© 2025 All rights reserved | Licensed under the Apache-2.0 license\n")
+
+# === 跨平台输入处理 ===
+try:
+    import msvcrt
+    def get_key():
+        while True:
+            ch = msvcrt.getch().decode(errors='ignore').lower()
+            if ch in ('\x00', '\xe0'):
+                msvcrt.getch()
+            else:
+                return ch
+except ImportError:
+    import termios
+    import tty
+    def get_key():
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1).lower()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+# === 全局状态 ===
+operations = []         # 操作记录
+ignored_files = 0       # 不支持文件计数器
+processed_files = 0     # 已处理文件计数器
+
+# === 日志配置（支持颜色）===
+class ColorFormatter(logging.Formatter):
+    FORMATS = {
+        logging.WARNING: "\033[31m[WARNING]\033[0m %(message)s",
+        logging.ERROR: "\033[31m[ERROR]\033[0m %(message)s",
+        logging.INFO: "[%(levelname)s] %(message)s"
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+# 创建并配置日志处理器
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# 添加 StreamHandler
+handler = logging.StreamHandler()
+handler.setFormatter(ColorFormatter())
+logger.addHandler(handler)
+
+# === 依赖检查模块 ===
+def check_dependencies():
+    """检查并安装所需依赖"""
+    required = {
+        'Pillow': 'PIL',
+        'rawpy': 'rawpy'
+    }
+
+    missing = []
+    for pkg, imp in required.items():
+        try:
+            __import__(imp)
+        except ImportError:
+            missing.append(pkg)
+
+    if missing:
+        show_copyright()
+        print("缺少依赖库:")
+        print("\n".join(f"- {pkg}" for pkg in missing))
+        choice = input("是否自动安装？(Y/n): ").lower()
+        if choice in ('', 'y'):
+            try:
+                subprocess.check_call([
+                    sys.executable, "-m", "pip", "install", *missing
+                ])
+                print("安装成功，请重新运行程序")
+                sys.exit(0)
+            except Exception as e:
+                print(f"安装失败: {str(e)}")
+                sys.exit(1)
+        else:
+            print("必须安装依赖库才能继续")
+            sys.exit(1)
+
+# === 初始化检查 ===
+check_dependencies()
 import rawpy
 
-# 设置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# === 核心功能 ===
+def get_unique_path(target_path):
+    """生成唯一文件名"""
+    if not os.path.exists(target_path):
+        return target_path
 
-def get_image_orientation(image_path):
+    base_dir = os.path.dirname(target_path)
+    base_name, ext = os.path.splitext(os.path.basename(target_path))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    new_name = f"{base_name}_{timestamp}{ext}"
+    counter = 1
+    while os.path.exists(os.path.join(base_dir, new_name)):
+        new_name = f"{base_name}_{timestamp}_{counter}{ext}"
+        counter += 1
+
+    return os.path.join(base_dir, new_name)
+
+def get_orientation(file_path):
+    """智能判断图片方向"""
     try:
-        # 获取文件名用于日志显示
-        filename = os.path.basename(image_path)
-        
-        # 对于JPG文件
-        if image_path.lower().endswith(('.jpg', '.jpeg')):
-            with Image.open(image_path) as img:
-                # 获取原始尺寸
-                orig_width, orig_height = img.size
-                logger.info(f"正在处理 {filename} - 原始尺寸 - 宽: {orig_width}, 高: {orig_height}")
-                
-                # 获取EXIF数据
-                try:
-                    exif = img._getexif()
-                    if exif:
-                        orientation = exif.get(274, 1)  # 274 是方向标签的ID
-                        logger.info(f"EXIF方向值: {orientation}")
-                        
-                        # 检查是否需要交换宽高
-                        width, height = orig_width, orig_height
-                        if orientation in [5, 6, 7, 8]:
-                            width, height = height, width
-                            logger.info(f"根据EXIF调整后 - 宽: {width}, 高: {height}")
-                    else:
-                        width, height = orig_width, orig_height
-                        logger.info("未找到EXIF数据")
-                except Exception as e:
-                    width, height = orig_width, orig_height
-                    logger.info(f"读取EXIF时出错: {str(e)}")
-                
-        # 对于RAW文件（ARW和DNG）
-        elif image_path.lower().endswith(('.arw', '.dng')):
-            with rawpy.imread(image_path) as raw:
-                # 获取原始图像尺寸
+        ext = os.path.splitext(file_path)[1].lower()
+
+        # 处理JPG/JPEG
+        if ext in ('.jpg', '.jpeg'):
+            with Image.open(file_path) as img:
+                # 读取EXIF方向信息
+                exif = img.getexif()
+                orientation = exif.get(274, 1)
+
+                # 根据方向调整判断
+                if orientation in [5, 6, 7, 8]:
+                    width, height = img.height, img.width
+                else:
+                    width, height = img.width, img.height
+
+        # 处理RAW文件
+        elif ext in ('.arw', '.dng'):
+            with rawpy.imread(file_path) as raw:
                 width = raw.sizes.width
                 height = raw.sizes.height
-                logger.info(f"RAW文件({os.path.splitext(image_path)[1]}) - 宽: {width}, 高: {height}")
+
         else:
             return None
-        
-        # 判断方向
-        ratio = width / height
-        logger.info(f"宽高比: {ratio}")
-        
-        # 如果宽高比接近1（正方形），默认为横屏
-        if 0.95 <= ratio <= 1.05:
-            logger.info("接近正方形的图片，默认作为横屏")
-            return 'landscape'
-        
-        is_portrait = height > width
-        logger.info(f"判定为: {'竖屏' if is_portrait else '横屏'}")
-        return 'portrait' if is_portrait else 'landscape'
-                
+
+        # 方向判断逻辑
+        if width == height:
+            return 'square'
+        return 'portrait' if height > width else 'landscape'
+
     except Exception as e:
-        logger.error(f"处理文件 {image_path} 时出错: {str(e)}")
+        logger.error(f"处理 {os.path.basename(file_path)} 失败: {str(e)}")
         return None
 
-def process_directory(directory):
-    logger.info(f"\n处理文件夹: {directory}")
-    
-    # 先扫描一遍文件夹，判断是否有横/竖屏照片
-    has_landscape = False
-    has_portrait = False
-    image_orientations = {}  # 存储每个文件的方向
-    
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        
-        # 跳过文件夹和非图片文件
-        if os.path.isdir(file_path):
-            continue
-        if not filename.lower().endswith(('.jpg', '.jpeg', '.arw', '.dng')):
-            continue
-            
-        orientation = get_image_orientation(file_path)
-        if orientation:
-            image_orientations[file_path] = orientation
-            if orientation == 'landscape':
-                has_landscape = True
-            else:
-                has_portrait = True
-    
-    # 只在需要时创建文件夹
-    landscape_dir = os.path.join(directory, "横屏照片") if has_landscape else None
-    portrait_dir = os.path.join(directory, "竖屏照片") if has_portrait else None
-    
-    if landscape_dir:
-        os.makedirs(landscape_dir, exist_ok=True)
-    if portrait_dir:
-        os.makedirs(portrait_dir, exist_ok=True)
-    
-    # 移动文件
-    for file_path, orientation in image_orientations.items():
-        if orientation == 'landscape' and landscape_dir:
-            target_dir = landscape_dir
-        elif orientation == 'portrait' and portrait_dir:
-            target_dir = portrait_dir
-        else:
-            continue
-            
-        filename = os.path.basename(file_path)
-        target_path = os.path.join(target_dir, filename)
-        
-        try:
-            shutil.move(file_path, target_path)
-            logger.info(f"已将 {filename} 移动到: {target_dir}")
-        except Exception as e:
-            logger.error(f"移动文件时出错: {str(e)}")
-
-def process_recursive(path):
-    """递归处理文件夹"""
+def process_item(path, base_dir=None):
+    """处理单个文件或目录"""
     if os.path.isfile(path):
-        directory = os.path.dirname(path)
-        if not directory:
-            directory = os.getcwd()
-        process_directory(directory)
+        _process_file(path, base_dir or os.path.dirname(path))
     elif os.path.isdir(path):
-        # 先处理当前文件夹中的文件
-        process_directory(path)
-        
-        # 再递归处理子文件夹
-        for item in os.listdir(path):
-            item_path = os.path.join(path, item)
-            if os.path.isdir(item_path) and item not in ["横屏照片", "竖屏照片"]:
-                process_recursive(item_path)
+        for root, _, files in os.walk(path):
+            for f in files:
+                file_path = os.path.join(root, f)
+                _process_file(file_path, base_dir or root)
 
-def main(paths):
-    for path in paths:
-        process_recursive(path)
+def _process_file(file_path, base_dir):
+    """实际处理单个文件"""
+    global ignored_files, processed_files
+    
+    # 检查文件类型
+    if not file_path.lower().endswith(('.jpg', '.jpeg', '.arw', '.dng')):
+        logger.warning(f"不支持的文件类型: {os.path.basename(file_path)}")
+        ignored_files += 1
+        return
+
+    # 处理文件方向
+    try:
+        orientation = get_orientation(file_path)
+        if not orientation:
+            return
+
+        # 创建目标目录
+        target_dir = os.path.join(base_dir, {
+            'square': "方屏照片",
+            'portrait': "竖屏照片",
+            'landscape': "横屏照片"
+        }[orientation])
+        
+        os.makedirs(target_dir, exist_ok=True)
+
+        # 移动文件
+        target_path = get_unique_path(os.path.join(target_dir, os.path.basename(file_path)))
+        shutil.move(file_path, target_path)
+        operations.append((file_path, target_path))
+        processed_files += 1
+        logger.info(f"已移动: {os.path.basename(file_path)} -> {os.path.basename(target_dir)}")
+
+    except Exception as e:
+        logger.error(f"处理失败: {os.path.basename(file_path)} - {str(e)}")
+
+def undo_operations():
+    """撤销所有操作"""
+    if not operations:
+        logger.info("没有可撤销的操作")
+        return
+
+    # 逆向执行撤销
+    restored = 0
+    for src, dest in reversed(operations):
+        try:
+            if os.path.exists(dest):
+                os.makedirs(os.path.dirname(src), exist_ok=True)
+                shutil.move(dest, src)
+                restored += 1
+                logger.info(f"已撤销: {os.path.basename(dest)}")
+        except Exception as e:
+            logger.error(f"撤销失败: {str(e)}")
+
+    # 清理空目录
+    processed_dirs = set(os.path.dirname(dest) for _, dest in operations)
+    for d in processed_dirs:
+        try:
+            if os.path.exists(d) and not os.listdir(d):
+                os.rmdir(d)
+                logger.info(f"清理空目录: {d}")
+        except Exception as e:
+            logger.error(f"清理目录失败: {str(e)}")
+
+    operations.clear()
+    logger.info(f"成功撤销 {restored} 个文件")
+
+# === 主程序 ===
+def main():
+    show_copyright()
+    
+    if len(sys.argv) < 2:
+        print("使用方法：拖放文件/文件夹到程序图标")
+        input("按回车键退出...")
+        return
+
+    # 重置全局计数器
+    global ignored_files, processed_files
+    ignored_files = 0
+    processed_files = 0
+
+    # 处理文件
+    for path in sys.argv[1:]:
+        if os.path.exists(path):
+            process_item(path)
+        else:
+            logger.warning(f"路径不存在: {path}")
+
+    # 显示处理结果
+    print("\n" + "="*40)
+    if processed_files > 0:
+        print(f"成功处理 {processed_files} 张图片")
+    if ignored_files > 0:
+        print(f"忽略 {ignored_files} 个不支持的文件")
+    if processed_files == 0 and ignored_files == 0:
+        print("没有需要处理的文件")
+    print("="*40)
+
+    # 特殊处理：全部文件不支持的情况
+    if processed_files == 0 and ignored_files > 0:
+        print("\n⚠️ 所有拖入的文件均不支持")
+        input("按回车键退出...")
+        return
+
+    # 交互操作
+    if processed_files > 0:
+        print("\n[F] 撤销操作\n[其他键] 退出程序")
+        key = get_key()
+        if key == 'f':
+            undo_operations()
+            print("\n操作已撤销")
+    
+    input("按回车键退出...")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        main(sys.argv[1:])
-        input("处理完成，按Enter键退出...")
-    else:
-        print("请将文件或文件夹拖放到此脚本上。")
-        input("按Enter键退出...")
+    main()
