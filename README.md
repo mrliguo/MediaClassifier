@@ -2,61 +2,93 @@
 PhotoClassifier is a Python program that automatically distinguishes between horizontal and vertical images.
 
 ## Features
-Automatically distinguishes the orientation of images.
-
-Supports dragging and dropping folders or files for processing.
-
-Automatically creates directories to store classified images when processing folders.
+- Automatic orientation detection for images
+- Drag-and-drop folder/file support
+- Automatic directory management
+- Auto-installation of dependencies
+- Undo functionality by pressing `F` after completion
+- Operation statistics and log display in the console
 
 ## Supported Formats
 Currently supports the following image formats:
 - JPG
-- ARW
-- DNG
+- ARW 
+- DNG (including DNG raw files)
 
 ## Dependencies
-Before using PhotoClassifier, make sure you have installed the following Python libraries:
+PhotoClassifier requires these Python libraries:
 - `rawpy`
+- `Pillow`
+
+The program will automatically detect and install missing dependencies on first run. You can also manually install:
+
+```bash
+pip install rawpy Pillow
+```
 
 ## Usage
-1. Install the required libraries:
-
+1. (Optional) Manual installation:
    ```bash
    pip install rawpy Pillow
    ```
-2. Run the program and drag in folders or files.
+2. Run the program and drag in targets
+3. After processing completes, press `F` to undo the last operation
+4. View operation logs directly in the program console
 
-The program will automatically classify images and create corresponding folders in the specified directory.
+The program will:
+- Create `Horizontal` and `Vertical` folders
+- Generate backup copies for undo capability
+- Display operation statistics and logs in the console
+
+## Notes
+- Undo function (`F` key) must be used before closing the program
+- Original files remain unchanged in source directory
+- Logs include file counts, timestamps, and error messages
 
 # PhotoClassifier
 
 PhotoClassifier 是一个自动区分横竖屏图片的 Python 程序。
 
 ## 功能
-
-- 自动区分图片的横竖屏方向。
-- 支持拖入文件夹或文件进行处理。
-- 在处理文件夹时，自动创建目录以存放分类后的图片。
+- 智能识别图片方向
+- 支持拖拽文件/文件夹操作
+- 自动创建分类目录
+- 自动安装依赖库
+- 完成后按 `F` 键撤销操作
+- 操作统计与日志显示在程序运行框中
 
 ## 支持的格式
-
-目前支持以下图片格式：
+当前支持以下图像格式：
 - JPG
 - ARW
-- DNG
+- DNG (包含DNG原始文件)
 
 ## 依赖库
-
-在使用 PhotoClassifier 之前，请确保已安装以下 Python 库：
+程序需要以下 Python 库：
 - `rawpy`
+- `Pillow`
+
+首次运行时将自动检测并安装缺失依赖库，也可手动安装：
+
+```bash
+pip install rawpy Pillow
+```
 
 ## 使用方法
-
-1. 安装依赖库：
+1. （可选）手动安装：
    ```bash
-   pip install rawpy
+   pip install rawpy Pillow
    ```
-2. 运行程序并拖入文件夹或文件。
+2. 运行程序并拖入目标文件或文件夹
+3. 处理完成后，按 `F` 键撤销操作
+4. 在程序运行框中查看操作日志
 
-程序会自动分类图片并在指定目录中创建相应的文件夹。
+程序将会：
+- 创建「横向」和「纵向」分类文件夹
+- 生成操作备份以便撤销
+- 在运行框中显示操作统计和日志
 
+## 注意事项
+- 撤销功能（按 `F` 键）需在关闭程序前使用
+- 原始文件始终保留在源目录
+- 日志包含文件数量、时间戳和错误信息
