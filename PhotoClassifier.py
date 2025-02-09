@@ -3,14 +3,54 @@ import os
 import shutil
 import subprocess
 import logging
-from datetime import datetime
-from PIL import Image
 
 # === 版权信息 ===
 def show_copyright():
-    print("\nPhotoClassifier v1.8")
+    print("\nPhotoClassifier v1.8.2")
     print("Created by mrliguo")
     print("© 2025 All rights reserved | Licensed under the Apache-2.0 license\n")
+
+# === 依赖检查模块 ===
+def check_dependencies():
+    """先于所有第三方库导入执行"""
+    required = {
+        'Pillow': 'PIL',    # 包名: 导入名
+        'rawpy': 'rawpy'
+    }
+
+    missing = []
+    for pkg, imp in required.items():
+        try:
+            __import__(imp)
+        except ImportError:
+            missing.append(pkg)
+
+    if missing:
+        show_copyright()
+        print("缺少依赖库:")
+        print("\n".join(f"- {pkg}" for pkg in missing))
+        choice = input("是否自动安装？(Y/n): ").lower()
+        if choice in ('y'):
+            try:
+                subprocess.check_call([
+                    sys.executable, "-m", "pip", "install", *missing
+                ])
+                print("安装成功，请重新运行程序")
+                sys.exit(0)
+            except Exception as e:
+                print(f"安装失败: {str(e)}")
+                sys.exit(1)
+        else:
+            print("必须安装依赖库才能继续")
+            sys.exit(1)
+
+# === 依赖检查 ===
+check_dependencies()
+
+# === 导入第三方库 ===
+from PIL import Image
+from datetime import datetime
+import rawpy
 
 # === 跨平台输入处理 ===
 try:
@@ -61,43 +101,6 @@ handler = logging.StreamHandler()
 handler.setFormatter(ColorFormatter())
 logger.addHandler(handler)
 
-# === 依赖检查模块 ===
-def check_dependencies():
-    """检查并安装所需依赖"""
-    required = {
-        'Pillow': 'PIL',
-        'rawpy': 'rawpy'
-    }
-
-    missing = []
-    for pkg, imp in required.items():
-        try:
-            __import__(imp)
-        except ImportError:
-            missing.append(pkg)
-
-    if missing:
-        show_copyright()
-        print("缺少依赖库:")
-        print("\n".join(f"- {pkg}" for pkg in missing))
-        choice = input("是否自动安装？(Y/n): ").lower()
-        if choice in ('', 'y'):
-            try:
-                subprocess.check_call([
-                    sys.executable, "-m", "pip", "install", *missing
-                ])
-                print("安装成功，请重新运行程序")
-                sys.exit(0)
-            except Exception as e:
-                print(f"安装失败: {str(e)}")
-                sys.exit(1)
-        else:
-            print("必须安装依赖库才能继续")
-            sys.exit(1)
-
-# === 初始化检查 ===
-check_dependencies()
-import rawpy
 
 # === 核心功能 ===
 def get_unique_path(target_path):
