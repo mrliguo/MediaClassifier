@@ -6,7 +6,7 @@ import logging
 
 # === 版权信息 ===
 def show_copyright():
-    print("\nPhotoClassifier v1.8.2")
+    print("\nPhotoClassifier v1.8.3")
     print("Created by mrliguo")
     print("© 2025 All rights reserved | Licensed under the Apache-2.0 license\n")
 
@@ -30,18 +30,21 @@ def check_dependencies():
         print("缺少依赖库:")
         print("\n".join(f"- {pkg}" for pkg in missing))
         choice = input("是否自动安装？(Y/n): ").lower()
-        if choice in ('y'):
+        if choice in ('', 'y'):
             try:
                 subprocess.check_call([
                     sys.executable, "-m", "pip", "install", *missing
                 ])
                 print("安装成功，请重新运行程序")
+                input("按下 [Enter] 键退出...")
                 sys.exit(0)
             except Exception as e:
                 print(f"安装失败: {str(e)}")
+                input("按下 [Enter] 键退出...")
                 sys.exit(1)
         else:
             print("必须安装依赖库才能继续")
+            input("按下 [Enter] 键退出...")
             sys.exit(1)
 
 # === 依赖检查 ===
@@ -74,12 +77,7 @@ except ImportError:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-# === 全局状态 ===
-operations = []         # 操作记录
-ignored_files = 0       # 不支持文件计数器
-processed_files = 0     # 已处理文件计数器
-
-# === 日志配置（支持颜色）===
+# === 日志配置 ===
 class ColorFormatter(logging.Formatter):
     FORMATS = {
         logging.WARNING: "\033[31m[WARNING]\033[0m %(message)s",
@@ -95,12 +93,14 @@ class ColorFormatter(logging.Formatter):
 # 创建并配置日志处理器
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# 添加 StreamHandler
 handler = logging.StreamHandler()
 handler.setFormatter(ColorFormatter())
 logger.addHandler(handler)
 
+# === 全局状态 ===
+operations = []         # 操作记录
+ignored_files = 0       # 不支持文件计数器
+processed_files = 0     # 已处理文件计数器
 
 # === 核心功能 ===
 def get_unique_path(target_path):
@@ -238,7 +238,7 @@ def main():
     
     if len(sys.argv) < 2:
         print("使用方法：拖放文件/文件夹到程序图标")
-        input("按回车键退出...")
+        input("按下 [Enter] 键退出...")
         return
 
     # 重置全局计数器
@@ -266,18 +266,17 @@ def main():
     # 特殊处理：全部文件不支持的情况
     if processed_files == 0 and ignored_files > 0:
         print("\n⚠️ 所有拖入的文件均不支持")
-        input("按回车键退出...")
+        input("按下 [Enter] 键退出...")
         return
 
     # 交互操作
     if processed_files > 0:
-        print("\n[F] 撤销操作\n[其他键] 退出程序")
-        key = get_key()
+        print("\n输入 [F] 后按下 [Enter] 键撤销操作\n按下 [Enter] 键退出程序")
+        key = input().lower()
         if key == 'f':
             undo_operations()
             print("\n操作已撤销")
-    
-    input("按回车键退出...")
+            input("按下 [Enter] 键退出...")
 
 if __name__ == "__main__":
     main()
