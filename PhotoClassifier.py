@@ -47,9 +47,6 @@ def check_dependencies():
             input("按下 [Enter] 键退出...")
             sys.exit(1)
 
-# === 依赖检查 ===
-check_dependencies()
-
 # === 导入第三方库 ===
 from PIL import Image
 from datetime import datetime
