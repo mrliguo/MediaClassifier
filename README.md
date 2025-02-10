@@ -13,27 +13,23 @@ PhotoClassifier is a Python program that automatically distinguishes between hor
 Currently supports the following image formats:
 - JPG
 - ARW 
-- DNG (including DNG raw files)
+- DNG
 
 ## Dependencies
 PhotoClassifier requires these Python libraries:
 - `rawpy`
 - `Pillow`
 
-The program will automatically detect and install missing dependencies on first run. You can also manually install:
+The program will automatically detect and install missing dependencies on run. You can also manually install:
 
 ```bash
 pip install rawpy Pillow
 ```
 
 ## Usage
-1. (Optional) Manual installation:
-   ```bash
-   pip install rawpy Pillow
-   ```
-2. Run the program and drag in targets
-3. After processing completes, press `F` to undo the last operation
-4. View operation logs directly in the program console
+1. Run the program and drag in targets
+2. After processing completes, press `F` to undo the last operation
+3. View operation logs directly in the program console
 
 The program will:
 - Create `Horizontal` and `Vertical` folders
@@ -47,7 +43,7 @@ The program will:
 
 # PhotoClassifier
 
-PhotoClassifier 是一个自动区分横竖屏图片的 Python 程序。
+PhotoClassifier 是一个可以自动区分横竖屏图片的 Python 程序。
 
 ## 功能
 - 智能识别图片方向
@@ -61,30 +57,26 @@ PhotoClassifier 是一个自动区分横竖屏图片的 Python 程序。
 当前支持以下图像格式：
 - JPG
 - ARW
-- DNG (包含DNG原始文件)
+- DNG
 
 ## 依赖库
 程序需要以下 Python 库：
 - `rawpy`
 - `Pillow`
 
-首次运行时将自动检测并安装缺失依赖库，也可手动安装：
+程序运行时将自动检测并安装缺失依赖库，也可手动安装：
 
 ```bash
 pip install rawpy Pillow
 ```
 
 ## 使用方法
-1. （可选）手动安装：
-   ```bash
-   pip install rawpy Pillow
-   ```
-2. 运行程序并拖入目标文件或文件夹
-3. 处理完成后，按 `F` 键撤销操作
-4. 在程序运行框中查看操作日志
+1. 运行程序并拖入目标文件或文件夹
+2. 处理完成后，按 `F` 键撤销操作
+3. 在程序运行框中查看操作日志
 
 程序将会：
-- 创建「横向」和「纵向」分类文件夹
+- 创建「横屏照片」和「竖屏照片」分类文件夹
 - 生成操作备份以便撤销
 - 在运行框中显示操作统计和日志
 
