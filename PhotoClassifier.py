@@ -8,7 +8,7 @@ import logging
 def show_copyright():
     print("\nPhotoClassifier v1.8.3")
     print("Created by mrliguo")
-    print("© 2025 All rights reserved | Licensed under the Apache-2.0 license\n")
+    print("Licensed under the Apache-2.0 license\n")
 
 # === 依赖检查模块 ===
 def check_dependencies():
