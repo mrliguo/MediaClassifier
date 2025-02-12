@@ -1,3 +1,9 @@
+# === PhotoClassifier has been renamed MeidaClassifier. ===
+# === This version is the last PhotoClassifier distribution and only supports image processing ===
+# === You can go to MeidaClassifier. py to check the latest distribution ===
+#=== PhotoClassifier已重命名为MeidaClassifier ===
+#=== 此版本是最后一个PhotoClassifier发行版，仅支持图像处理 ===
+#=== 你可以MeidaClassifier.py查看最新分发 ===
 import sys
 import os
 import shutil
