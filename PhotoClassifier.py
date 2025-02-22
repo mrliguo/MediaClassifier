@@ -14,7 +14,7 @@ from datetime import datetime
 
 # === 版权信息 ===
 def show_copyright():
-    print("\nPhotoClassifier v1.8.4")
+    print("\nPhotoClassifier v1.8.4.1")
     print("支持智能图片分类")
     print("Created by mrliguo")
     print("Licensed under the Apache-2.0 license\n")
