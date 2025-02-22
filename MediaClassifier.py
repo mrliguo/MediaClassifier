@@ -7,7 +7,7 @@ from datetime import datetime
 
 # === 版权信息 ===
 def show_copyright():
-    print("\nMediaClassifier v2.1.3")
+    print("\nMediaClassifier v2.1.3.1")
     print("支持智能媒体分类（照片/视频）")
     print("Created by mrliguo")
     print("Licensed under the Apache-2.0 license\n")
@@ -338,6 +338,12 @@ def main():
     print(f"成功处理 {processed_files} 个文件")
     print(f"忽略 {ignored_files} 个不支持的文件")
     print("="*40)
+
+    # 特殊处理：全部文件不支持的情况
+    if processed_files == 0 and ignored_files > 0:
+        print("\n⚠️ 所有拖入的文件均不支持")
+        input("按下 [Enter] 键退出...")
+        return
 
     # 撤销功能
     if processed_files > 0:
