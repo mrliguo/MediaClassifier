@@ -255,6 +255,12 @@ def main():
     print(f"忽略 {ignored_files} 个不支持的文件")
     print("="*40)
 
+    # 特殊处理：全部文件不支持的情况
+    if processed_files == 0 and ignored_files > 0:
+        print("\n⚠️ 所有拖入的文件均不支持")
+        input("按下 [Enter] 键退出...")
+        return
+
     # 撤销功能
     if processed_files > 0:
         print("\n输入 [F] 后按下 [Enter] 键撤销操作\n按下 [Enter] 键退出程序")
