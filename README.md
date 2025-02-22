@@ -37,7 +37,6 @@
 The program requires the following Python libraries:
 - `Pillow` (image processing)
 - `rawpy` (RAW file support)
-- `opencv-python` (video processing)
 - `pillow-heif` (HEIC file support)
 
 The `ffmpeg.exe` file must be placed in the `library` folder under the program's directory; otherwise, the program will not run.
@@ -45,7 +44,7 @@ The `ffmpeg.exe` file must be placed in the `library` folder under the program's
 The program will automatically detect and install missing dependencies. You can also manually install them:
 
 ```bash
-pip install Pillow rawpy opencv-python pillow-heif
+pip install Pillow rawpy pillow-heif
 ```
 
 ## Usage
@@ -130,7 +129,6 @@ pip install Pillow rawpy opencv-python pillow-heif
 程序需要以下 Python 库：
 - `Pillow`（图像处理）
 - `rawpy`（RAW 文件支持）
-- `opencv-python`（视频处理）
 - `pillow-heif`（HEIC 文件支持）
 
 需要将`ffmpeg.exe`存放在程序所在目录下的`library`文件夹中，否则程序将无法运行
@@ -138,7 +136,7 @@ pip install Pillow rawpy opencv-python pillow-heif
 程序会自动检测并安装缺失依赖库，也可手动安装：
 
 ```bash
-pip install Pillow rawpy opencv-python pillow-heif
+pip install Pillow rawpy pillow-heif
 ```
 
 ## 使用方法
