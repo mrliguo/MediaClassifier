@@ -3,7 +3,7 @@
 #===You can check the latest distribution on MeidaClassifier.py===
 #=== PhotoClassifier已更名为MeidaClassifier ===
 #=== 此版本是最后一个PhotoClassifier发行版，仅支持图像处理 ===
-#=== 你可以MeidaClassifier.py查看最新分发 ===
+#=== 你可以在MeidaClassifier.py查看最新分发 ===
 
 import sys
 import os
