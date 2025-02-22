@@ -5,13 +5,19 @@ import subprocess
 import logging
 from datetime import datetime
 
+# === 版权信息 ===
+def show_copyright():
+    print("\nMediaClassifier v2.1.3")
+    print("支持智能媒体分类（照片/视频）")
+    print("Created by mrliguo")
+    print("Licensed under the Apache-2.0 license\n")
+
 # === 依赖检查模块 ===
 def check_dependencies():
     """强制优先执行的依赖检查"""
     required = {
         'Pillow': 'PIL',
         'rawpy': 'rawpy',
-        'opencv-python': 'cv2',
         'pillow-heif': 'pillow_heif'
     }
 
@@ -22,6 +28,15 @@ def check_dependencies():
         except ImportError:
             missing.append(pkg)
 
+    # 检查ffmpeg
+    ffmpeg_path = os.path.join(os.path.dirname(__file__), "library", "ffmpeg.exe")
+    if not os.path.exists(ffmpeg_path):
+        print("\nMediaClassifier 依赖检查")
+        print(f"缺少必要组件: ffmpeg.exe")
+        print("请将其放置在程序目录的 library 文件夹中")
+        input("按下 [Enter] 键退出...")
+        sys.exit(1)
+
     if missing:
         print("\nMediaClassifier 依赖检查")
         print("缺少以下必要依赖库:")
@@ -31,9 +46,9 @@ def check_dependencies():
             try:
                 subprocess.check_call([
                     sys.executable, "-m", "pip", "install", *missing,
-                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"
                 ])
                 print("\n安装成功！请重新运行程序")
+                input("按下 [Enter] 键退出...")
                 sys.exit(0)
             except Exception as e:
                 print(f"\n安装失败: {str(e)}")
@@ -42,29 +57,20 @@ def check_dependencies():
                 sys.exit(1)
         else:
             print("\n必须安装依赖库才能继续")
+            input("按下 [Enter] 键退出...")
             sys.exit(1)
 
 # === 强制优先执行依赖检查 ===
 check_dependencies()
 
 # === 导入第三方库（依赖检查通过后执行）===
+import re
 from PIL import Image
-import rawpy
-import cv2
 import pillow_heif
+import rawpy
 
 # 初始化HEIF支持
 pillow_heif.register_heif_opener()
-
-# 初始化HEIF支持
-pillow_heif.register_heif_opener()
-
-# === 版权信息 ===
-def show_copyright():
-    print("\nMediaClassifier v2.1.2")
-    print("支持智能媒体分类（照片/视频）")
-    print("Created by mrliguo")
-    print("Licensed under the Apache-2.0 license\n")
 
 # === 文件类型配置 ===
 IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', 
@@ -118,21 +124,43 @@ def get_unique_path(target_path):
     return os.path.join(base_dir, new_name)
 
 def get_orientation(file_path):
-    """获取媒体方向信息"""
+    """获取媒体方向信息（修复视频旋转判断）"""
     try:
         ext = os.path.splitext(file_path)[1].lower()
-        width, height = 0, 0
+        width = height = 0
 
         # 处理图片
+               # 处理图片
         if ext in IMAGE_EXTS:
             media_types.add("photo")
-            # RAW格式处理
-            if ext in ('.arw', '.dng', '.cr2', '.nef', '.raf', '.sr2', '.pef', '.orf'):
+            
+            # ===== 改进的RAW文件处理逻辑 =====
+            if ext == '.dng':
+               with rawpy.imread(file_path) as raw:
+                    width = raw.sizes.width
+                    height = raw.sizes.height
+                    # 如果是DNG文件，读取EXIF方向信息
+                    try:
+                        img = Image.open(file_path)
+                        exif = img.getexif()
+                        orientation = exif.get(274, 1)
+                        # 根据EXIF方向调整
+                        if orientation in [5, 6, 7, 8]:
+                            width, height = height, width
+                    except Exception as e:
+                        logger.warning(f"无法读取DNG文件EXIF方向: {str(e)}")
+
+            elif ext in ('.arw', '.cr2', '.nef', '.raf', '.sr2', '.pef', '.orf'):
+                # 其他RAW格式：仅使用rawpy处理
                 with rawpy.imread(file_path) as raw:
                     width = raw.sizes.width
                     height = raw.sizes.height
-            # 普通图片处理
+                    # 部分RAW文件可能需要交换宽高
+                    if raw.sizes.flip in (5, 6, 7, 8):
+                        width, height = height, width
+
             else:
+                # 普通图片处理（非RAW格式）
                 with Image.open(file_path) as img:
                     exif = img.getexif()
                     orientation = exif.get(274, 1)
@@ -140,26 +168,56 @@ def get_orientation(file_path):
                         width, height = img.height, img.width
                     else:
                         width, height = img.width, img.height
+            # ===== 改进结束 =====
+
+            return '方屏' if width == height else '竖屏' if height > width else '横屏'
 
         # 处理视频
         elif ext in VIDEO_EXTS:
             media_types.add("video")
-            cap = cv2.VideoCapture(file_path)
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            cap.release()
+            
+            ffmpeg_path = os.path.join(os.path.dirname(__file__), "library", "ffmpeg.exe")
+            # 已存在的ffmpeg路径检查...
 
-        else:
-            return None
+            cmd = [ffmpeg_path, "-i", file_path]
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            _, stderr = process.communicate()
+            output = stderr.decode('utf-8')
 
-        # 判断方向
-        if width == height:
-            return '方屏'
-        return '竖屏' if height > width else '横屏'
+            # 改进分辨率匹配逻辑
+            resolution_match = re.search(r'Stream.*Video.* (\d+)x(\d+)', output)
+            if not resolution_match:
+                logger.error(f"无法获取视频分辨率: {os.path.basename(file_path)}")
+                return None
+
+            width = int(resolution_match.group(1))
+            height = int(resolution_match.group(2))
+
+            # 改进旋转检测逻辑
+            rotation_match = re.search(r'rotation of ([-+]?\d+\.\d+) degrees', output)
+            rotation = 0.0
+            if rotation_match:
+                rotation = float(rotation_match.group(1))
+
+            # 根据实际旋转角度判断方向
+            actual_rotation = abs(rotation) % 360
+            is_rotated = actual_rotation in (90, 270, -90, -270)
+            
+            # 当存在有效旋转时交换宽高
+            if is_rotated:
+                width, height = height, width
+
+            # 最终方向判断
+            if width == height:
+                return '方屏'
+            return '竖屏' if height > width else '横屏'
+
+        return None
 
     except Exception as e:
         logger.error(f"处理失败: {os.path.basename(file_path)} - {str(e)}")
         return None
+
 
 def process_file(file_path, base_dir, separate_mode):
     """处理单个文件"""
@@ -222,10 +280,6 @@ def undo_operations():
 
     operations.clear()
     logger.info(f"成功撤销 {restored} 个文件")
-
-def main():
-    check_dependencies()
-    show_copyright()
 
 # === 主程序 ===
 def main():
@@ -292,7 +346,7 @@ def main():
         if choice == 'f':
             undo_operations()
             print("\n操作已撤销，按 [Enter] 键退出...")
-            input()  # 关键修改：等待用户确认
+            input()
         else:
             pass
 
