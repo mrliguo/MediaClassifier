@@ -7,7 +7,6 @@
 - Drag-and-drop file/folder support
 - Automatic directory creation
 - Auto-installation of dependencies
-- Undo operation by pressing `F` after completion
 - Operation statistics and logs displayed in the console
 - Support for mixed media types (photos + videos)
 - Undo functionality to restore files to their original locations
@@ -99,7 +98,6 @@ pip install Pillow rawpy pillow-heif
 - 支持拖拽文件/文件夹操作
 - 自动创建分类目录
 - 自动安装依赖库
-- 按 `F` 键撤销操作
 - 控制台显示操作统计和日志
 - 支持混合媒体类型（照片+视频）
 - 提供撤销功能以恢复文件到原始位置
